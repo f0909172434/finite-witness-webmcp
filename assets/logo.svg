@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title id="title">Finite Witness mark</title>
+  <rect width="64" height="64" rx="14" fill="#151719"/>
+  <path d="M18 19 46 19 48 43 27 49 16 34Z" fill="none" stroke="#ff6b4a" stroke-width="3" stroke-linejoin="round"/>
+  <circle cx="18" cy="19" r="5" fill="#f4f3ee"/>
+  <circle cx="46" cy="19" r="5" fill="#f4f3ee"/>
+  <circle cx="48" cy="43" r="5" fill="#f4f3ee"/>
+  <circle cx="27" cy="49" r="5" fill="#f4f3ee"/>
+  <circle cx="16" cy="34" r="5" fill="#ff6b4a"/>
+</svg>
