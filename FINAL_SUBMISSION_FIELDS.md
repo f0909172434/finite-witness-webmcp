@@ -6,17 +6,17 @@ Finite Witness
 
 ## Tagline
 
-Put a universal claim under pressure. Find the one graph that breaks it.
+Find, inspect, and revise finite counterexamples with a human and an agent in one live workspace.
 
 ## YouTube title
 
-Finite Witness | One Graph Is Enough — WebMCP Counterexample Search
+Finite Witness | Human-Agent Counterexample Search with WebMCP
 
 ## YouTube description
 
 Finite Witness is a finite graph conjecture laboratory built for the OpenAI WebMCP Challenge.
 
-The 119-second demo records the core workflow: a person shapes a graph conjecture, the engine finds its first counterexample in the declared order, and an agent saves the witness and suggests the next assumptions to test. The current v1.2 app presents that workflow as a `∀ → ∃` conjecture pressure rig and adds direct repair-and-retest plus deterministic counterexample certificates.
+The 119-second demo shows the original six-tool workflow: a person shapes a graph conjecture, the engine finds its first counterexample in the declared order, and an agent saves the witness and suggests the next assumptions to test. The current v1.1 app adds two tools for applying a repair and retrieving a deterministic counterexample certificate.
 
 Live app: https://f0909172434.github.io/finite-witness-webmcp/
 
@@ -48,5 +48,5 @@ Finite Witness registers eight tools in the top-level page with `document.modelC
 2. `assets/screenshots/02-counterexample-workbench.png`
 3. `assets/screenshots/03-agent-repair-loop.png`
 4. `assets/screenshots/04-evidence-shelf.png`
-5. `assets/screenshots/05-mobile-certificate.png`
-6. `assets/screenshots/06-mobile-repair-loop.png`
+5. `assets/screenshots/05-v1.1-certificate.png`
+6. `assets/screenshots/06-v1.1-repair-cards.png`

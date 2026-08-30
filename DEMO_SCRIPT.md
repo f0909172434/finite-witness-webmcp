@@ -1,6 +1,6 @@
 # Finite Witness demo script (target: 2:30)
 
-This script matches the published v1.0 demo. The live v1.2 product presents the workflow as a `∀ → ∃` conjecture pressure rig and adds `apply_conjecture_repair` plus `get_counterexample_certificate`, bringing the current total to eight WebMCP tools.
+This script matches the published v1.0 demo. The live v1.1 product adds `apply_conjecture_repair` and `get_counterexample_certificate`, bringing the current total to eight WebMCP tools.
 
 ## 0:00-0:20 | The problem
 

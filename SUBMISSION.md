@@ -2,17 +2,17 @@
 
 ## Inspiration
 
-Mathematical conjectures often fail for a small, concrete reason. A universal statement may survive a thousand examples and still end with one graph. Existing graph tools usually split the work: a person operates a visual interface, while an automated system works in a separate script or notebook. The two views drift apart.
+Mathematical conjectures often fail for a small, concrete reason, but finding that reason can take more time than understanding it. Existing graph tools usually split the work: a person operates a visual interface, while an automated system works in a separate script or notebook. The two views drift apart.
 
-Finite Witness asks what becomes possible when a person and an agent share the same live mathematical workspace. Its `∀ → ∃` pressure rig makes the logic visible: the person frames the universal claim, the agent or person runs the declared search, and the first existential witness occupies the same sheet. The person can inspect every metric and decide what the mathematics means.
+Finite Witness asks what becomes possible when a person and an agent share the same live mathematical workspace. The agent can turn a verbal direction into structured constraints, exhaustively search finite graphs, and preserve exact evidence. The person can immediately see the smallest witness, inspect every metric, and decide what the mathematics means.
 
 ## What it does
 
-Finite Witness is an interactive conjecture laboratory for finite simple graphs. A user can combine assumptions such as connectivity, minimum degree, bipartiteness, parity, edge surplus, and diameter with one of several graph conclusions. The live header rewrites the resulting universal statement as controls change. The app then checks labeled graphs from three vertices upward and stops at the first counterexample or the selected upper bound.
+Finite Witness is an interactive conjecture laboratory for finite simple graphs. A user can combine assumptions such as connectivity, minimum degree, bipartiteness, parity, edge surplus, and diameter with one of several graph conclusions. The app checks labeled graphs from three vertices upward and stops at the first counterexample or the selected upper bound.
 
 The result is an inspectable graph rather than a bare “false” answer. Finite Witness reports its vertices, edges, degree sequence, triangle count, diameter, and bipartite status, together with the exact number of candidate graphs searched. If no witness appears within the bound, the interface explicitly calls the result finite evidence rather than proof.
 
-Each witness also receives a deterministic certificate containing the normalized claim, labeled edge mask and edge list, metrics, enumeration order, and exact search counts. Experiments can be shared by URL, filed in the witness archive, and exported as a versioned JSON evidence bundle. Candidate repairs explicitly feed the current witness into the next claim before the rig runs again.
+Each witness also receives a deterministic certificate containing the normalized claim, labeled edge mask and edge list, metrics, enumeration order, and exact search counts. Experiments can be shared by URL, saved locally, and exported as a versioned JSON evidence bundle.
 
 ## Why WebMCP is essential
 
@@ -28,7 +28,7 @@ WebMCP tools are registered in the top-level page with `document.modelContext.re
 
 ## Challenges
 
-The first challenge was making agent operations and human controls share one source of truth. Changing a visible assumption invalidates the earlier result immediately, so stale evidence cannot be mistaken for a result about the revised claim. The second was preserving mathematical honesty: an exhaustive search within a finite bound can refute a claim, but failure to find a witness is not a proof. The interface gives that outcome its own bounded-survival state. The final challenge was visual: every control, transition, and result had to express the same `∀ → ∃` argument instead of looking like a collection of dashboard cards.
+The main challenge was making agent operations and human controls share one source of truth. Changing a visible assumption now invalidates the earlier result immediately, so stale evidence cannot be mistaken for a result about the revised claim. A second challenge was preserving mathematical honesty: an exhaustive search within a finite bound can refute a claim, but failure to find a witness is not a proof. That distinction appears in both the UI and every relevant tool response.
 
 ## Accomplishments
 
@@ -38,11 +38,10 @@ The first challenge was making agent operations and human controls share one sou
 - Shareable experiments and deterministic witness certificates.
 - Reproducible witness records stored locally and exportable as JSON.
 - A dependency-free public deployment with no account or API key required.
-- A responsive proof-sheet interface whose universal, witness, and repair states follow the actual search state.
 
 ## What we learned
 
-Agent-native design works best when tools expose meaningful domain operations, not copies of buttons. “Search for the smallest counterexample” is a stable mathematical action. The interface can then give that action a strong visual consequence without changing the tool contract.
+Agent-native design works best when tools expose meaningful domain operations, not copies of buttons. “Search for the smallest counterexample” is a stable mathematical action. It remains useful even if the interface changes completely.
 
 ## What's next
 

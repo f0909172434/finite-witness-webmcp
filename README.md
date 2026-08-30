@@ -1,10 +1,10 @@
 # Finite Witness
 
-**One graph is enough.**
+**Find the smallest world where a claim breaks.**
 
-Finite Witness is a local-first finite graph conjecture laboratory built for the [OpenAI WebMCP Challenge](https://webmcp.devpost.com/). Its interface is a `∀ → ∃` pressure rig: a person assembles a universal claim, ordered graph search applies pressure, and the first counterexample shifts the page toward a concrete existential witness. An AI agent can configure the same claim, run the same engine, preserve the witness, apply a repair, and retrieve a deterministic certificate through eight WebMCP tools.
+Finite Witness is a local-first finite graph conjecture laboratory built for the [OpenAI WebMCP Challenge](https://webmcp.devpost.com/). A person shapes a graph conjecture through the visual workbench while an AI agent can configure the same claim, run the same exhaustive engine, preserve the witness, apply a repair, and retrieve a deterministic certificate through eight WebMCP tools.
 
-The agent handles structured search and bookkeeping. The person sees the actual graph, checks the metrics, and decides how the mathematical claim should change. Both work through one live, inspectable sheet.
+The central idea is simple: counterexample search becomes much more useful when the agent and the person share one live, inspectable workspace. The agent handles structured search and bookkeeping. The person sees the actual graph, checks the metrics, and decides how the mathematical claim should change.
 
 ## Live app
 
@@ -12,19 +12,13 @@ The agent handles structured search and bookkeeping. The person sees the actual 
 
 No account, API key, build step, or backend is required. Saved witnesses stay in the current browser's local storage.
 
-## Interface concept
-
-![Finite Witness interface: one graph is enough](assets/screenshots/01-hero.png)
-
-The visual system follows the mathematical argument. The universal quantifier begins with most of the weight. The ordered search line tightens as premises are added. When a counterexample appears, a single red `∃` takes over the consequence field. Candidate repairs then feed that witness back into the next universal statement. The paper, ruled lines, serif mathematics, black ink, and one witness-red accent keep every screen part of the same proof instrument.
-
 ## Human and agent workflow
 
-1. Assemble a finite simple graph conjecture and read the live universal statement.
+1. Choose or configure a finite simple graph conjecture.
 2. Search labeled graphs with at least three vertices in increasing order, stopping at the first counterexample and using six vertices as the upper bound.
 3. Inspect the first counterexample and its exact graph metrics.
 4. Save the witness with the claim and search count.
-5. Feed the witness into a candidate repair and immediately test the revised statement again.
+5. Apply a candidate repair and immediately test the revised statement again.
 6. Copy a deterministic counterexample certificate or share the entire experiment by URL.
 
 Finite Witness is an educational finite search tool. A claim surviving a bounded search is evidence, not a proof.
