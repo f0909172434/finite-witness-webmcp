@@ -1,6 +1,6 @@
 {
   "name": "finite-witness-webmcp",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "type": "module",
   "description": "An agent-ready finite graph conjecture laboratory built for the OpenAI WebMCP Challenge.",

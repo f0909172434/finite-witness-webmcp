@@ -7,6 +7,31 @@ const conclusionLabels = {
   diameter_at_most_2: "have diameter at most 2",
 };
 
+const conclusionIds = new Set(Object.keys(conclusionLabels));
+
+const repairStrategies = {
+  "min-degree-3": {
+    label: "Raise the minimum degree to 3",
+    patch: { assumptions: { minDegree: 3 } },
+  },
+  "non-bipartite": {
+    label: "Require a non-bipartite graph",
+    patch: { assumptions: { bipartite: "no" } },
+  },
+  "diameter-2": {
+    label: "Cap the diameter at 2",
+    patch: { assumptions: { maxDiameter: 2 } },
+  },
+  "edge-surplus-1": {
+    label: "Require m ≥ n + 1",
+    patch: { assumptions: { edgeSurplus: 1 } },
+  },
+  "all-even": {
+    label: "Require every degree to be even",
+    patch: { assumptions: { allEven: true } },
+  },
+};
+
 export const scenarios = {
   triangle: {
     name: "Minimum degree forces a triangle",
@@ -33,6 +58,45 @@ export const scenarios = {
     maxVertices: 6,
   },
 };
+
+export function normalizeConfig(value, fallback = scenarios.triangle) {
+  const base = structuredClone(fallback);
+  if (!value || typeof value !== "object") return base;
+  const assumptions = value.assumptions && typeof value.assumptions === "object" ? value.assumptions : {};
+  const chooseBoolean = (candidate, defaultValue) => typeof candidate === "boolean" ? candidate : defaultValue;
+  const chooseEnum = (candidate, allowed, defaultValue) => allowed.includes(candidate) ? candidate : defaultValue;
+
+  return {
+    name: typeof value.name === "string" && value.name.trim() ? value.name.trim().slice(0, 72) : base.name,
+    assumptions: {
+      connected: chooseBoolean(assumptions.connected, base.assumptions.connected),
+      minDegree: chooseEnum(assumptions.minDegree, [null, 1, 2, 3], base.assumptions.minDegree),
+      bipartite: chooseEnum(assumptions.bipartite, ["any", "yes", "no"], base.assumptions.bipartite),
+      triangleFree: chooseBoolean(assumptions.triangleFree, base.assumptions.triangleFree),
+      allEven: chooseBoolean(assumptions.allEven, base.assumptions.allEven),
+      evenOrder: chooseBoolean(assumptions.evenOrder, base.assumptions.evenOrder),
+      edgeSurplus: chooseEnum(assumptions.edgeSurplus, [null, 0, 1], base.assumptions.edgeSurplus),
+      maxDiameter: chooseEnum(assumptions.maxDiameter, [null, 2, 3], base.assumptions.maxDiameter),
+    },
+    conclusion: conclusionIds.has(value.conclusion) ? value.conclusion : base.conclusion,
+    maxVertices: Number.isInteger(value.maxVertices) && value.maxVertices >= 3 && value.maxVertices <= 6 ? value.maxVertices : base.maxVertices,
+  };
+}
+
+export function encodeExperiment(config) {
+  const bytes = new TextEncoder().encode(JSON.stringify(normalizeConfig(config)));
+  let binary = "";
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary).replaceAll("+", "-").replaceAll("/", "_").replace(/=+$/u, "");
+}
+
+export function decodeExperiment(encoded) {
+  if (typeof encoded !== "string" || !encoded) throw new Error("Missing experiment payload.");
+  const padded = encoded.replaceAll("-", "+").replaceAll("_", "/").padEnd(Math.ceil(encoded.length / 4) * 4, "=");
+  const binary = atob(padded);
+  const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
+  return normalizeConfig(JSON.parse(new TextDecoder().decode(bytes)));
+}
 
 export function edgePairs(n) {
   const pairs = [];
@@ -229,8 +293,8 @@ export function formatClaim(config) {
   if (a.evenOrder) parts.push("even order");
   if (a.edgeSurplus !== null) parts.push(a.edgeSurplus === 0 ? "at least as many edges as vertices" : "at least one more edge than vertices");
   if (a.maxDiameter !== null) parts.push(`diameter at most ${a.maxDiameter}`);
-  const premise = parts.length ? parts.join(", ") : "finite and simple";
-  return `Every ${premise} graph must ${conclusionLabels[config.conclusion]}.`;
+  const premise = parts.length ? `${parts.join(", ")} graph` : "finite simple graph";
+  return `Every ${premise} with at least 3 vertices must ${conclusionLabels[config.conclusion]}.`;
 }
 
 export function explainWitness(config, result) {
@@ -247,24 +311,81 @@ export function explainWitness(config, result) {
   return `${claim} This ${m.vertices}-vertex graph satisfies every selected assumption, but ${failure}.`;
 }
 
+export function applyRepair(config, repairId) {
+  const strategy = repairStrategies[repairId];
+  if (!strategy) throw new Error(`Unknown repair: ${repairId}`);
+  const next = normalizeConfig(config);
+  next.assumptions = { ...next.assumptions, ...strategy.patch.assumptions };
+  return next;
+}
+
+function certificateHash(text) {
+  let hash = 0x811c9dc5;
+  for (let index = 0; index < text.length; index += 1) {
+    hash ^= text.charCodeAt(index);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return (hash >>> 0).toString(16).padStart(8, "0");
+}
+
+export function buildCertificate(config, result) {
+  if (!result?.found) throw new Error("A counterexample is required to build a certificate.");
+  const normalized = normalizeConfig(config);
+  const payload = {
+    schema: "finite-witness/certificate-v1",
+    claim: formatClaim(normalized),
+    config: normalized,
+    search: {
+      domain: "labeled finite simple graphs with at least 3 vertices",
+      requested_range: [3, result.maxVertices],
+      order: "vertex count, then labeled edge-mask order",
+      searched_prefix: {
+        fully_checked_vertex_counts: Array.from({ length: Math.max(0, result.graph.n - 3) }, (_, index) => index + 3),
+        first_counterexample_at: { vertices: result.graph.n, edge_mask: result.graph.mask },
+        stopped_after_first_counterexample: true,
+      },
+      candidates_tested: result.tested,
+      admissible_graphs_in_searched_prefix: result.admissible,
+      bounded_result: "counterexample",
+    },
+    witness: {
+      vertices: result.graph.n,
+      edge_mask: result.graph.mask,
+      edges: result.graph.edges,
+      metrics: result.metrics,
+    },
+    caution: "This certificate verifies a finite exhaustive search result; absence of a witness would not constitute a proof.",
+  };
+  return { certificate_id: `fw-${certificateHash(JSON.stringify(payload))}`, ...payload };
+}
+
 export function suggestRepairs(config, result) {
   if (!result?.found) return [];
   const m = result.metrics;
   const candidates = [];
   if (m.minDegree < 3 && config.assumptions.minDegree !== 3) {
-    candidates.push({ id: "min-degree-3", label: "Raise the minimum degree to 3", rationale: `The witness has minimum degree ${m.minDegree}. This excludes it while preserving the graph family.` });
+    candidates.push({ id: "min-degree-3", rationale: `The witness has minimum degree ${m.minDegree}. This excludes it while preserving the graph family.` });
   }
   if (m.bipartite && config.assumptions.bipartite !== "no") {
-    candidates.push({ id: "non-bipartite", label: "Require a non-bipartite graph", rationale: "The witness is bipartite, so an odd-cycle requirement removes it." });
+    candidates.push({ id: "non-bipartite", rationale: "The witness is bipartite, so an odd-cycle requirement removes it." });
   }
   if (m.diameter !== null && m.diameter > 2 && config.assumptions.maxDiameter !== 2) {
-    candidates.push({ id: "diameter-2", label: "Cap the diameter at 2", rationale: `The witness has diameter ${m.diameter}. A short-diameter condition removes it.` });
+    candidates.push({ id: "diameter-2", rationale: `The witness has diameter ${m.diameter}. A short-diameter condition removes it.` });
   }
   if (m.edges < m.vertices + 1 && config.assumptions.edgeSurplus !== 1) {
-    candidates.push({ id: "edge-surplus-1", label: "Require m ≥ n + 1", rationale: `The witness has n=${m.vertices} and m=${m.edges}. One additional edge of surplus excludes it.` });
+    candidates.push({ id: "edge-surplus-1", rationale: `The witness has n=${m.vertices} and m=${m.edges}. One additional edge of surplus excludes it.` });
   }
   if (!m.allEven && !config.assumptions.allEven) {
-    candidates.push({ id: "all-even", label: "Require every degree to be even", rationale: `The degree sequence [${m.degrees.join(", ")}] violates this stronger premise.` });
+    candidates.push({ id: "all-even", rationale: `The degree sequence [${m.degrees.join(", ")}] violates this stronger premise.` });
   }
-  return candidates.slice(0, 3);
+  return candidates.slice(0, 3).map((candidate) => {
+    const strategy = repairStrategies[candidate.id];
+    const nextConfig = applyRepair(config, candidate.id);
+    return {
+      ...candidate,
+      label: strategy.label,
+      patch: structuredClone(strategy.patch),
+      next_claim: formatClaim(nextConfig),
+    };
+  });
 }

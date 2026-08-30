@@ -1,5 +1,7 @@
 # Finite Witness demo script (target: 2:30)
 
+This script matches the published v1.0 demo. The live v1.1 product adds `apply_conjecture_repair` and `get_counterexample_certificate`, bringing the current total to eight WebMCP tools.
+
 ## 0:00-0:20 | The problem
 
 “A mathematical claim can be wrong for one small, concrete reason. Finding that reason is tedious, and automated search usually happens somewhere the learner cannot see. Finite Witness gives a person and an AI agent one shared conjecture workspace.”

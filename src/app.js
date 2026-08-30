@@ -4,8 +4,14 @@ import {
   explainWitness,
   searchCounterexample,
   suggestRepairs,
+  applyRepair,
+  buildCertificate,
+  encodeExperiment,
+  decodeExperiment,
+  normalizeConfig,
 } from "./graph-engine.js";
 import { registerWebMCP } from "./webmcp.js";
+import { sanitizeEvidenceRecords } from "./evidence.js";
 
 const $ = (selector) => document.querySelector(selector);
 const dom = {
@@ -17,12 +23,32 @@ const dom = {
   witnessTitle: $("#witness-title"), witnessExplanation: $("#witness-explanation"), metricGrid: $("#metric-grid"), graphEdges: $("#graph-edges"), graphNodes: $("#graph-nodes"),
   save: $("#save-witness"), suggest: $("#suggest-repairs"), repairPanel: $("#repair-panel"), repairList: $("#repair-list"), closeRepairs: $("#close-repairs"),
   savedList: $("#saved-list"), activity: $("#activity-log"), toast: $("#toast"), protocol: $("#webmcp-status"), copyPrompt: $("#copy-prompt"), theme: $("#theme-toggle"),
+  copyExperiment: $("#copy-experiment-link"), reset: $("#reset-workspace"), copyCertificate: $("#copy-certificate"), certificateId: $("#certificate-id"), exportEvidence: $("#export-evidence"),
 };
 
 let currentResult = null;
 let currentConfig = structuredClone(scenarios.triangle);
 let searchPromise = null;
-let savedWitnesses = JSON.parse(localStorage.getItem("finite-witness-evidence") || "[]");
+let currentCertificate = null;
+
+function readSavedWitnesses() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem("finite-witness-evidence") || "[]");
+    const sanitized = sanitizeEvidenceRecords(parsed);
+    if (!Array.isArray(parsed) || sanitized.length !== parsed.length) localStorage.setItem("finite-witness-evidence", JSON.stringify(sanitized));
+    return sanitized;
+  } catch {
+    localStorage.removeItem("finite-witness-evidence");
+    return [];
+  }
+}
+
+let savedWitnesses = readSavedWitnesses();
+
+const configControls = [
+  dom.scenario, dom.name, dom.connected, dom.minDegree, dom.bipartite, dom.triangleFree, dom.allEven,
+  dom.evenOrder, dom.edgeSurplus, dom.maxDiameter, dom.conclusion, dom.maxVertices,
+];
 
 function readConfig() {
   return {
@@ -42,7 +68,13 @@ function readConfig() {
   };
 }
 
+function scenarioKeyForConfig(config) {
+  const normalized = JSON.stringify(normalizeConfig(config));
+  return Object.keys(scenarios).find((key) => JSON.stringify(normalizeConfig(scenarios[key])) === normalized) || "custom";
+}
+
 function writeConfig(config) {
+  dom.scenario.value = scenarioKeyForConfig(config);
   dom.name.value = config.name;
   dom.connected.checked = Boolean(config.assumptions.connected);
   dom.minDegree.value = config.assumptions.minDegree === null ? "none" : String(config.assumptions.minDegree);
@@ -66,6 +98,13 @@ function setView(view) {
   if (view !== "witness") dom.repairPanel.hidden = true;
 }
 
+function resetSearchMeta() {
+  dom.searchState.textContent = "Ready";
+  dom.searchState.dataset.state = "ready";
+  dom.graphsTested.textContent = "0 graphs tested";
+  dom.certificateId.textContent = "Generated after search";
+}
+
 function addActivity(message, source = "human") {
   const item = document.createElement("li");
   const time = document.createElement("time");
@@ -83,17 +122,26 @@ function showToast(message) {
   window.setTimeout(() => dom.toast.classList.remove("visible"), 2600);
 }
 
-function describeResult(result) {
-  if (!result.found) return { found: false, tested: result.tested, admissible: result.admissible, maxVertices: result.maxVertices };
+function describeResult(result, config = currentConfig) {
+  if (!result.found) return { found: false, tested: result.tested, admissible: result.admissible, requested_range: [3, result.maxVertices], complete_range_checked: true };
   return {
     found: true,
-    minimality: `First witness in exhaustive search from 3 through ${result.graph.n} vertices`,
+    minimality: `First witness after exhaustively checking the declared order from 3 vertices through edge mask ${result.graph.mask} at ${result.graph.n} vertices`,
     graph: { vertices: result.graph.n, edges: result.graph.edges, mask: result.graph.mask },
     metrics: result.metrics,
     tested: result.tested,
     admissible: result.admissible,
-    explanation: explainWitness(currentConfig, result),
+    explanation: explainWitness(config, result),
+    certificate: buildCertificate(config, result),
   };
+}
+
+function experimentUrl(config = readConfig()) {
+  const url = new URL(window.location.href);
+  url.search = "";
+  url.searchParams.set("experiment", encodeExperiment(config));
+  url.hash = "workspace";
+  return url.toString();
 }
 
 function graphLayout(n) {
@@ -127,9 +175,11 @@ function renderGraph(result) {
   });
 }
 
-function renderResult(result) {
+function renderResult(result, config = currentConfig) {
   dom.graphsTested.textContent = `${result.tested.toLocaleString()} graphs tested`;
   if (!result.found) {
+    currentCertificate = null;
+    dom.certificateId.textContent = "Generated after search";
     dom.searchState.textContent = "Survived"; dom.searchState.dataset.state = "survived";
     $("#no-witness-title").textContent = `No witness through ${result.maxVertices} vertices.`;
     setView("no-witness");
@@ -137,7 +187,9 @@ function renderResult(result) {
   }
   dom.searchState.textContent = "Witness found"; dom.searchState.dataset.state = "found";
   dom.witnessTitle.textContent = `${result.metrics.vertices} vertices are enough.`;
-  dom.witnessExplanation.textContent = explainWitness(currentConfig, result);
+  dom.witnessExplanation.textContent = explainWitness(config, result);
+  currentCertificate = buildCertificate(config, result);
+  dom.certificateId.textContent = currentCertificate.certificate_id;
   const metrics = [
     ["Vertices", result.metrics.vertices], ["Edges", result.metrics.edges], ["Degree sequence", result.metrics.degrees.join(" · ")],
     ["Triangles", result.metrics.triangles], ["Diameter", result.metrics.diameter ?? "∞"], ["Bipartite", result.metrics.bipartite ? "Yes" : "No"],
@@ -161,37 +213,64 @@ function runInWorker(config) {
 
 async function performSearch(source = "human") {
   if (searchPromise) return searchPromise;
-  currentConfig = readConfig();
+  const searchConfig = normalizeConfig(readConfig());
+  currentConfig = structuredClone(searchConfig);
   setView("searching"); dom.searchState.textContent = "Searching"; dom.searchState.dataset.state = "searching"; dom.run.disabled = true;
-  addActivity(`Search started: ${formatClaim(currentConfig)}`, source);
+  configControls.forEach((control) => { control.disabled = true; });
+  addActivity(`Search started: ${formatClaim(searchConfig)}`, source);
   const started = performance.now();
-  searchPromise = runInWorker(currentConfig).then((result) => {
-    currentResult = result; renderResult(result);
+  searchPromise = runInWorker(searchConfig).then((result) => {
+    currentResult = result; renderResult(result, searchConfig);
     const elapsedMs = Math.round(performance.now() - started);
     addActivity(result.found ? `Minimal witness found after ${result.tested.toLocaleString()} candidates.` : `No witness found after ${result.tested.toLocaleString()} candidates.`, source);
-    return { ...describeResult(result), elapsed_ms: elapsedMs, claim: formatClaim(currentConfig) };
-  }).finally(() => { dom.run.disabled = false; searchPromise = null; });
+    return { ...describeResult(result, searchConfig), elapsed_ms: elapsedMs, claim: formatClaim(searchConfig), experiment_url: experimentUrl(searchConfig) };
+  }).catch((error) => {
+    currentResult = null; currentCertificate = null; setView("empty");
+    dom.searchState.textContent = "Search failed"; dom.searchState.dataset.state = "ready";
+    addActivity(`Search failed: ${error.message}`, source);
+    throw error;
+  }).finally(() => {
+    dom.run.disabled = false;
+    configControls.forEach((control) => { control.disabled = false; });
+    searchPromise = null;
+  });
   return searchPromise;
 }
 
 function loadScenario(key, source = "human") {
+  if (searchPromise) throw new Error("Wait for the current search to finish before loading a scenario.");
   if (!scenarios[key]) throw new Error(`Unknown scenario: ${key}`);
-  dom.scenario.value = key; writeConfig(structuredClone(scenarios[key])); currentResult = null; setView("empty");
-  dom.searchState.textContent = "Ready"; dom.searchState.dataset.state = "ready"; dom.graphsTested.textContent = "0 graphs tested";
+  dom.scenario.value = key; writeConfig(structuredClone(scenarios[key])); currentResult = null; currentCertificate = null; setView("empty");
+  resetSearchMeta();
   addActivity(`Loaded scenario “${scenarios[key].name}”.`, source);
   return { loaded: key, config: getState().config, claim: formatClaim(currentConfig) };
 }
 
 function configure(input, source = "agent") {
+  if (searchPromise) throw new Error("Wait for the current search to finish before changing the conjecture.");
   const config = readConfig();
   if (input.name !== undefined) config.name = input.name;
   const map = { connected: "connected", min_degree: "minDegree", bipartite: "bipartite", triangle_free: "triangleFree", all_even_degrees: "allEven", even_order: "evenOrder", edge_surplus: "edgeSurplus", max_diameter: "maxDiameter" };
   Object.entries(map).forEach(([external, internal]) => { if (input[external] !== undefined) config.assumptions[internal] = input[external]; });
   if (input.conclusion !== undefined) config.conclusion = input.conclusion;
   if (input.max_vertices !== undefined) config.maxVertices = input.max_vertices;
-  writeConfig(config); currentResult = null; setView("empty");
+  const normalized = normalizeConfig(config);
+  writeConfig(normalized); currentResult = null; currentCertificate = null; setView("empty");
+  resetSearchMeta();
   addActivity(`Conjecture configured: ${formatClaim(config)}`, source);
-  return { configured: true, config, claim: formatClaim(config) };
+  return { configured: true, config: normalized, claim: formatClaim(normalized), experiment_url: experimentUrl(normalized) };
+}
+
+function invalidateResult() {
+  if (searchPromise) return;
+  currentConfig = normalizeConfig(readConfig());
+  dom.scenario.value = scenarioKeyForConfig(currentConfig);
+  if (!currentResult) return;
+  currentResult = null;
+  currentCertificate = null;
+  setView("empty");
+  resetSearchMeta();
+  addActivity("Conjecture changed. The previous witness was cleared until the new claim is tested.");
 }
 
 function getState() {
@@ -202,7 +281,8 @@ function getState() {
     claim: formatClaim(config),
     latest_result: currentResult ? describeResult(currentResult) : null,
     saved_witness_count: savedWitnesses.length,
-    search_semantics: "Exhaustive over labeled finite simple graphs, ordered by vertex count then edge-mask order.",
+    experiment_url: experimentUrl(config),
+    search_semantics: "Ordered prefix search over labeled finite simple graphs with at least 3 vertices; stops at the first counterexample.",
     caution: "No witness within a finite bound is evidence, not a proof.",
   };
 }
@@ -222,10 +302,11 @@ function saveWitness(note = "", source = "human") {
     graph: { n: currentResult.graph.n, mask: currentResult.graph.mask, edges: currentResult.graph.edges },
     metrics: currentResult.metrics,
     tested: currentResult.tested,
+    certificate: buildCertificate(currentConfig, currentResult),
     note,
     savedAt: new Date().toISOString(),
   };
-  savedWitnesses.unshift(entry); savedWitnesses = savedWitnesses.slice(0, 8); persistSaved();
+  savedWitnesses.unshift(entry); savedWitnesses = savedWitnesses.slice(0, 24); persistSaved();
   addActivity(`Saved ${entry.graph.n}-vertex witness to the evidence shelf.`, source); showToast("Witness saved to this browser");
   return { saved: true, entry };
 }
@@ -233,15 +314,39 @@ function saveWitness(note = "", source = "human") {
 function getRepairs(source = "human") {
   if (!currentResult?.found) throw new Error("No counterexample is currently visible. Run a search first.");
   const repairs = suggestRepairs(currentConfig, currentResult);
-  addActivity(`Generated ${repairs.length} candidate repairs for the current witness.`, source);
+  if (source !== "agent") addActivity(`Generated ${repairs.length} candidate repairs for the current witness.`, source);
   return { claim: formatClaim(currentConfig), witness_metrics: currentResult.metrics, repairs, caution: "Each repair only excludes this witness; rerun the search and do not treat it as a proof." };
+}
+
+async function applyRepairAndMaybeSearch(repairId, source = "human", runSearch = true) {
+  if (searchPromise) throw new Error("Wait for the current search to finish before applying a repair.");
+  if (!currentResult?.found) throw new Error("No counterexample is currently visible. Run a search first.");
+  const availableRepair = suggestRepairs(currentConfig, currentResult).find((repair) => repair.id === repairId);
+  if (!availableRepair) throw new Error(`Repair “${repairId}” does not exclude the current witness. Request fresh suggestions first.`);
+  const nextConfig = applyRepair(currentConfig, repairId);
+  writeConfig(nextConfig);
+  currentResult = null;
+  currentCertificate = null;
+  resetSearchMeta();
+  setView("empty");
+  addActivity(`Applied repair: ${formatClaim(nextConfig)}`, source);
+  const response = { applied: true, repair_id: repairId, config: nextConfig, claim: formatClaim(nextConfig), experiment_url: experimentUrl(nextConfig) };
+  if (!runSearch) return response;
+  return { ...response, result: await performSearch(source) };
+}
+
+function getCertificate() {
+  if (!currentResult?.found || !currentCertificate) throw new Error("No counterexample certificate is available. Run a search first.");
+  return currentCertificate;
 }
 
 function renderRepairs() {
   const { repairs } = getRepairs("human");
   dom.repairList.replaceChildren(...repairs.map((repair) => {
-    const article = document.createElement("article"); const title = document.createElement("h4"); const body = document.createElement("p");
-    title.textContent = repair.label; body.textContent = repair.rationale; article.append(title, body); return article;
+    const article = document.createElement("article"); const title = document.createElement("h4"); const body = document.createElement("p"); const next = document.createElement("small"); const apply = document.createElement("button");
+    title.textContent = repair.label; body.textContent = repair.rationale; next.textContent = repair.next_claim; apply.type = "button"; apply.className = "repair-apply"; apply.textContent = "Apply & retest";
+    apply.addEventListener("click", () => applyRepairAndMaybeSearch(repair.id, "human", true).catch((error) => showToast(error.message)));
+    article.append(title, body, next, apply); return article;
   }));
   dom.repairPanel.hidden = false;
 }
@@ -254,9 +359,10 @@ function renderSaved() {
   dom.savedList.replaceChildren(...savedWitnesses.map((entry, index) => {
     const article = document.createElement("article"); article.className = "saved-card";
     const count = document.createElement("span"); count.className = "saved-count"; count.textContent = String(index + 1).padStart(2, "0");
-    const content = document.createElement("div"); const title = document.createElement("h3"); const claim = document.createElement("p"); const meta = document.createElement("span");
+    const content = document.createElement("div"); const title = document.createElement("h3"); const claim = document.createElement("p"); const meta = document.createElement("span"); const certificate = document.createElement("code");
     title.textContent = entry.name; claim.textContent = entry.claim; meta.textContent = `${entry.graph.n} vertices · ${entry.metrics.edges} edges · ${entry.tested.toLocaleString()} candidates`;
-    content.append(title, claim, meta); article.append(count, content); return article;
+    certificate.textContent = entry.certificate?.certificate_id || "legacy evidence";
+    content.append(title, claim, meta, certificate); article.append(count, content); return article;
   }));
 }
 
@@ -269,12 +375,39 @@ function onProtocolReady(tools) {
 dom.run.addEventListener("click", () => performSearch("human").catch((error) => { setView("empty"); showToast(error.message); }));
 dom.scenario.addEventListener("change", () => loadScenario(dom.scenario.value));
 dom.maxVertices.addEventListener("input", () => { dom.maxVerticesValue.textContent = `${dom.maxVertices.value} vertices`; });
+configControls.forEach((control) => control.addEventListener("change", invalidateResult));
+dom.name.addEventListener("input", invalidateResult);
+dom.maxVertices.addEventListener("input", invalidateResult);
 dom.save.addEventListener("click", () => saveWitness());
 dom.suggest.addEventListener("click", renderRepairs);
 dom.closeRepairs.addEventListener("click", () => { dom.repairPanel.hidden = true; });
+dom.copyExperiment.addEventListener("click", async () => {
+  try {
+    await navigator.clipboard.writeText(experimentUrl());
+    showToast("Reproducible experiment link copied");
+  } catch { showToast("Clipboard access is unavailable in this browser"); }
+});
+dom.reset.addEventListener("click", () => {
+  loadScenario("triangle");
+  const url = new URL(window.location.href); url.searchParams.delete("experiment"); history.replaceState(null, "", `${url.pathname}${url.hash || "#workspace"}`);
+  showToast("Workspace reset");
+});
+dom.copyCertificate.addEventListener("click", async () => {
+  try {
+    await navigator.clipboard.writeText(JSON.stringify(getCertificate(), null, 2));
+    showToast("Counterexample certificate copied");
+  } catch (error) { showToast(error.message); }
+});
+dom.exportEvidence.addEventListener("click", () => {
+  const bundle = { schema: "finite-witness/evidence-bundle-v1", exported_at: new Date().toISOString(), witnesses: savedWitnesses };
+  const href = URL.createObjectURL(new Blob([JSON.stringify(bundle, null, 2)], { type: "application/json" }));
+  const link = document.createElement("a"); link.href = href; link.download = "finite-witness-evidence.json"; link.click(); URL.revokeObjectURL(href);
+  showToast(`${savedWitnesses.length} evidence record${savedWitnesses.length === 1 ? "" : "s"} exported`);
+});
 dom.copyPrompt.addEventListener("click", async () => {
-  const prompt = "Use this page’s WebMCP tools to load the triangle scenario, search for the smallest counterexample, explain exactly why it breaks the claim, save the witness, and suggest two repairs. Do not call surviving a bounded search a proof.";
-  await navigator.clipboard.writeText(prompt); showToast("Agent prompt copied");
+  const prompt = "Use this page’s WebMCP tools to load the triangle scenario, search for the smallest counterexample, explain exactly why it breaks the claim, save it, inspect the suggested repairs, apply one repair and retest it, then return the counterexample certificate. Do not call surviving a bounded search a proof.";
+  try { await navigator.clipboard.writeText(prompt); showToast("Agent prompt copied"); }
+  catch { showToast("Clipboard access is unavailable in this browser"); }
 });
 dom.theme.addEventListener("click", () => {
   const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
@@ -283,9 +416,18 @@ dom.theme.addEventListener("click", () => {
 
 const savedTheme = localStorage.getItem("finite-witness-theme");
 if (savedTheme) document.documentElement.dataset.theme = savedTheme;
+const sharedExperiment = new URLSearchParams(window.location.search).get("experiment");
+if (sharedExperiment) {
+  try {
+    currentConfig = decodeExperiment(sharedExperiment);
+    addActivity("Loaded a reproducible experiment from the page URL.");
+  } catch (error) {
+    showToast(`Could not load shared experiment: ${error.message}`);
+  }
+}
 writeConfig(currentConfig); renderSaved();
 
-const workspace = { getState, loadScenario, configure, search: performSearch, saveWitness, getRepairs, onProtocolReady };
+const workspace = { getState, loadScenario, configure, search: performSearch, saveWitness, getRepairs, applyRepair: applyRepairAndMaybeSearch, getCertificate, onProtocolReady };
 registerWebMCP(workspace).then((registered) => {
   if (!registered) dom.protocol.querySelector("span:last-child").textContent = "WebMCP-ready browser needed";
 }).catch((error) => {

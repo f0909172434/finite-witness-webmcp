@@ -31,7 +31,7 @@ export async function registerWebMCP(workspace) {
       inputSchema: objectSchema({
         name: { type: "string", minLength: 1, maxLength: 72 },
         connected: { type: "boolean" },
-        min_degree: { type: ["integer", "null"], minimum: 0, maximum: 3 },
+        min_degree: { type: ["integer", "null"], minimum: 1, maximum: 3 },
         bipartite: { type: "string", enum: ["any", "yes", "no"] },
         triangle_free: { type: "boolean" },
         all_even_degrees: { type: "boolean" },
@@ -59,10 +59,26 @@ export async function registerWebMCP(workspace) {
     },
     {
       name: "suggest_conjecture_repairs",
-      description: "Return up to three stronger assumptions that exclude the current counterexample. Suggestions are explicitly hypotheses for the next search, not proofs.",
+      description: "Return up to three stronger assumptions that exclude the current counterexample, including machine-readable patches and the resulting next claim. Suggestions are hypotheses, not proofs.",
       inputSchema: objectSchema({}),
       annotations: { readOnlyHint: true },
       execute: async () => workspace.getRepairs("agent"),
+    },
+    {
+      name: "apply_conjecture_repair",
+      description: "Apply one suggested repair to the shared conjecture and optionally run the next exhaustive search. This creates a visible, verifiable human-agent repair loop.",
+      inputSchema: objectSchema({
+        repair_id: { type: "string", enum: ["min-degree-3", "non-bipartite", "diameter-2", "edge-surplus-1", "all-even"] },
+        run_search: { type: "boolean", description: "When true, immediately test the repaired conjecture." },
+      }, ["repair_id"]),
+      execute: async ({ repair_id, run_search = true }) => workspace.applyRepair(repair_id, "agent", run_search),
+    },
+    {
+      name: "get_counterexample_certificate",
+      description: "Return a deterministic certificate for the visible counterexample, including the exact claim, edge mask, edge list, metrics, bounded enumeration order, and search counts.",
+      inputSchema: objectSchema({}),
+      annotations: { readOnlyHint: true },
+      execute: async () => workspace.getCertificate(),
     },
   ];
 

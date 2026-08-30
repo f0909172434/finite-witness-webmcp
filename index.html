@@ -32,7 +32,7 @@
         <div class="intro-copy">
           <p class="kicker">A finite graph laboratory for people and agents</p>
           <h1 id="page-title">Find the smallest world where a claim breaks.</h1>
-          <p>Shape a conjecture visually. Let an agent search every small graph. Inspect the witness together.</p>
+          <p>Shape a conjecture visually. Let an agent check small graphs in a declared order. Inspect the first witness together.</p>
         </div>
         <div class="intro-proof" aria-label="Current proof search summary">
           <span class="proof-index">01</span>
@@ -58,6 +58,7 @@
               <option value="even-cycle">Even degree shape</option>
               <option value="perfect-matching">Perfect matching</option>
               <option value="diameter">Short diameter</option>
+              <option value="custom" disabled>Custom conjecture</option>
             </select>
           </div>
 
@@ -65,7 +66,7 @@
           <input id="claim-name" class="text-input" type="text" maxlength="72" value="Minimum degree forces a triangle" />
 
           <fieldset>
-            <legend>If a finite simple graph is...</legend>
+            <legend>If a finite simple graph with at least 3 vertices is...</legend>
             <label class="check-row">
               <input id="assume-connected" type="checkbox" checked />
               <span>Connected</span>
@@ -136,7 +137,11 @@
             Search for a counterexample
             <span aria-hidden="true">→</span>
           </button>
-          <p class="builder-note">Exhaustive over every labeled simple graph in the selected range.</p>
+          <div class="builder-utility-actions" aria-label="Experiment utilities">
+            <button id="copy-experiment-link" class="text-button utility-button" type="button">Copy experiment link</button>
+            <button id="reset-workspace" class="text-button utility-button" type="button">Reset workspace</button>
+          </div>
+          <p class="builder-note">Checks labeled graphs with at least 3 vertices in order and stops at the first counterexample.</p>
         </aside>
 
         <section class="result-panel" aria-live="polite">
@@ -183,6 +188,11 @@
               <div class="result-actions">
                 <button id="save-witness" class="primary-button compact" type="button">Save witness</button>
                 <button id="suggest-repairs" class="secondary-button" type="button">Suggest repairs</button>
+                <button id="copy-certificate" class="secondary-button" type="button">Copy certificate</button>
+              </div>
+              <div class="certificate-summary" aria-label="Current reproducibility certificate">
+                <span>Reproducibility certificate</span>
+                <code id="certificate-id">Generated after search</code>
               </div>
             </div>
           </div>
@@ -222,7 +232,10 @@
             <span class="section-number">04</span>
             <h2 id="evidence-title">Evidence shelf</h2>
           </div>
-          <p>Saved in this browser. Every entry records the exact claim, bound, witness, and search count.</p>
+          <div class="evidence-heading-copy">
+            <p>Saved in this browser. Every entry records the exact claim, bound, witness, and search count.</p>
+            <button id="export-evidence" class="text-button utility-button" type="button">Export evidence JSON</button>
+          </div>
         </div>
         <div id="saved-list" class="saved-list">
           <div class="saved-empty">
