@@ -24,12 +24,16 @@ const dom = {
   save: $("#save-witness"), suggest: $("#suggest-repairs"), repairPanel: $("#repair-panel"), repairList: $("#repair-list"), closeRepairs: $("#close-repairs"),
   savedList: $("#saved-list"), activity: $("#activity-log"), toast: $("#toast"), protocol: $("#webmcp-status"), copyPrompt: $("#copy-prompt"), theme: $("#theme-toggle"),
   copyExperiment: $("#copy-experiment-link"), reset: $("#reset-workspace"), copyCertificate: $("#copy-certificate"), certificateId: $("#certificate-id"), exportEvidence: $("#export-evidence"),
+  liveClaim: $("#live-claim"), rigState: $("#rig-state"), rigBound: $("#rig-bound"), iteration: $("#iteration-number"),
+  advanced: $("#advanced-premises"), resultPanel: $(".result-panel"), quickRun: $("#quick-run-search"),
 };
 
 let currentResult = null;
 let currentConfig = structuredClone(scenarios.triangle);
 let searchPromise = null;
 let currentCertificate = null;
+let iteration = 0;
+let repairReturnFocus = null;
 
 function readSavedWitnesses() {
   try {
@@ -73,6 +77,43 @@ function scenarioKeyForConfig(config) {
   return Object.keys(scenarios).find((key) => JSON.stringify(normalizeConfig(scenarios[key])) === normalized) || "custom";
 }
 
+function updateClaimRig(config) {
+  const normalized = normalizeConfig(config);
+  const assumptions = normalized.assumptions;
+  const activeAssumptions = [
+    assumptions.connected,
+    assumptions.minDegree !== null,
+    assumptions.bipartite !== "any",
+    assumptions.triangleFree,
+    assumptions.allEven,
+    assumptions.evenOrder,
+    assumptions.edgeSurplus !== null,
+    assumptions.maxDiameter !== null,
+  ].filter(Boolean).length;
+  document.body.style.setProperty("--tension", `${Math.min(86, 30 + activeAssumptions * 7)}%`);
+  dom.liveClaim.textContent = formatClaim(normalized);
+  dom.rigBound.textContent = `3 ≤ |V| ≤ ${normalized.maxVertices}`;
+}
+
+function revealResultOnSmallScreen() {
+  if (!window.matchMedia("(max-width: 860px)").matches) return;
+  const behavior = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
+  window.requestAnimationFrame(() => dom.resultPanel.scrollIntoView({ behavior, block: "start" }));
+}
+
+function setExperience(state) {
+  const labels = {
+    rest: "Untested",
+    armed: "Claim revised",
+    searching: "Under pressure",
+    broken: "Counterexample",
+    bounded: "Bounded survival",
+    repairing: "Repair loop",
+  };
+  document.body.dataset.experience = state;
+  dom.rigState.textContent = labels[state] || labels.rest;
+}
+
 function writeConfig(config) {
   dom.scenario.value = scenarioKeyForConfig(config);
   dom.name.value = config.name;
@@ -84,10 +125,13 @@ function writeConfig(config) {
   dom.evenOrder.checked = Boolean(config.assumptions.evenOrder);
   dom.edgeSurplus.value = config.assumptions.edgeSurplus === null ? "none" : String(config.assumptions.edgeSurplus);
   dom.maxDiameter.value = config.assumptions.maxDiameter === null ? "none" : String(config.assumptions.maxDiameter);
+  dom.advanced.open = Boolean(config.assumptions.triangleFree || config.assumptions.allEven || config.assumptions.evenOrder
+    || config.assumptions.edgeSurplus !== null || config.assumptions.maxDiameter !== null);
   dom.conclusion.value = config.conclusion;
   dom.maxVertices.value = String(config.maxVertices);
   dom.maxVerticesValue.textContent = `${config.maxVertices} vertices`;
   currentConfig = structuredClone(config);
+  updateClaimRig(config);
 }
 
 function setView(view) {
@@ -95,7 +139,9 @@ function setView(view) {
   dom.searching.hidden = view !== "searching";
   dom.witness.hidden = view !== "witness";
   dom.noWitness.hidden = view !== "no-witness";
-  if (view !== "witness") dom.repairPanel.hidden = true;
+  if (view !== "witness" && !dom.repairPanel.hidden) closeRepairPanel({ restoreFocus: false, nextExperience: null });
+  const experience = { empty: "armed", searching: "searching", witness: "broken", "no-witness": "bounded" }[view];
+  if (experience) setExperience(experience);
 }
 
 function resetSearchMeta() {
@@ -215,7 +261,11 @@ async function performSearch(source = "human") {
   if (searchPromise) return searchPromise;
   const searchConfig = normalizeConfig(readConfig());
   currentConfig = structuredClone(searchConfig);
-  setView("searching"); dom.searchState.textContent = "Searching"; dom.searchState.dataset.state = "searching"; dom.run.disabled = true;
+  iteration += 1;
+  dom.iteration.textContent = String(iteration).padStart(2, "0");
+  updateClaimRig(searchConfig);
+  setView("searching"); dom.searchState.textContent = "Searching"; dom.searchState.dataset.state = "searching"; dom.run.disabled = true; dom.quickRun.disabled = true;
+  revealResultOnSmallScreen();
   configControls.forEach((control) => { control.disabled = true; });
   addActivity(`Search started: ${formatClaim(searchConfig)}`, source);
   const started = performance.now();
@@ -231,6 +281,7 @@ async function performSearch(source = "human") {
     throw error;
   }).finally(() => {
     dom.run.disabled = false;
+    dom.quickRun.disabled = false;
     configControls.forEach((control) => { control.disabled = false; });
     searchPromise = null;
   });
@@ -264,8 +315,12 @@ function configure(input, source = "agent") {
 function invalidateResult() {
   if (searchPromise) return;
   currentConfig = normalizeConfig(readConfig());
+  updateClaimRig(currentConfig);
   dom.scenario.value = scenarioKeyForConfig(currentConfig);
-  if (!currentResult) return;
+  if (!currentResult) {
+    setView("empty");
+    return;
+  }
   currentResult = null;
   currentCertificate = null;
   setView("empty");
@@ -340,20 +395,71 @@ function getCertificate() {
   return currentCertificate;
 }
 
+function setRepairBackgroundInert(value) {
+  const selectors = [
+    ".site-header", ".rig-header", ".rig-pressure", ".builder-panel", ".result-toolbar",
+    "#empty-state", "#searching-state", "#witness-state", "#no-witness-state",
+    ".agent-relay", "#evidence", ".activity-section", "footer",
+  ];
+  selectors.forEach((selector) => {
+    const element = document.querySelector(selector);
+    if (element) element.inert = value;
+  });
+}
+
+function closeRepairPanel({ restoreFocus = true, nextExperience = "broken" } = {}) {
+  dom.repairPanel.hidden = true;
+  setRepairBackgroundInert(false);
+  if (nextExperience) setExperience(nextExperience);
+  if (restoreFocus) {
+    const target = repairReturnFocus?.isConnected ? repairReturnFocus : dom.suggest;
+    window.requestAnimationFrame(() => target.focus());
+  }
+}
+
+function handleRepairKeydown(event) {
+  if (dom.repairPanel.hidden) return;
+  if (event.key === "Escape") {
+    event.preventDefault();
+    closeRepairPanel();
+    return;
+  }
+  if (event.key !== "Tab") return;
+  const focusable = [...dom.repairPanel.querySelectorAll("button, [href], input, select, textarea, [tabindex]:not([tabindex='-1'])")]
+    .filter((element) => !element.disabled && element.offsetParent !== null);
+  if (!focusable.length) return;
+  const first = focusable[0];
+  const last = focusable.at(-1);
+  if (event.shiftKey && document.activeElement === first) {
+    event.preventDefault();
+    last.focus();
+  } else if (!event.shiftKey && document.activeElement === last) {
+    event.preventDefault();
+    first.focus();
+  }
+}
+
 function renderRepairs() {
   const { repairs } = getRepairs("human");
   dom.repairList.replaceChildren(...repairs.map((repair) => {
     const article = document.createElement("article"); const title = document.createElement("h4"); const body = document.createElement("p"); const next = document.createElement("small"); const apply = document.createElement("button");
     title.textContent = repair.label; body.textContent = repair.rationale; next.textContent = repair.next_claim; apply.type = "button"; apply.className = "repair-apply"; apply.textContent = "Apply & retest";
-    apply.addEventListener("click", () => applyRepairAndMaybeSearch(repair.id, "human", true).catch((error) => showToast(error.message)));
+    apply.addEventListener("click", () => {
+      closeRepairPanel({ restoreFocus: false, nextExperience: null });
+      applyRepairAndMaybeSearch(repair.id, "human", true).catch((error) => showToast(error.message));
+    });
     article.append(title, body, next, apply); return article;
   }));
+  repairReturnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : dom.suggest;
   dom.repairPanel.hidden = false;
+  setRepairBackgroundInert(true);
+  setExperience("repairing");
+  window.requestAnimationFrame(() => dom.closeRepairs.focus());
 }
 
 function renderSaved() {
   if (!savedWitnesses.length) {
-    dom.savedList.innerHTML = '<div class="saved-empty"><p>No witnesses saved yet.</p><span>Find one above, then pin it here for comparison.</span></div>';
+    dom.savedList.innerHTML = '<div class="saved-empty"><span class="empty-file" aria-hidden="true">∄</span><div><p>No witness filed yet.</p><span>Find one above, then preserve its certificate here.</span></div></div>';
     return;
   }
   dom.savedList.replaceChildren(...savedWitnesses.map((entry, index) => {
@@ -373,6 +479,7 @@ function onProtocolReady(tools) {
 }
 
 dom.run.addEventListener("click", () => performSearch("human").catch((error) => { setView("empty"); showToast(error.message); }));
+dom.quickRun.addEventListener("click", () => performSearch("human").catch((error) => { setView("empty"); showToast(error.message); }));
 dom.scenario.addEventListener("change", () => loadScenario(dom.scenario.value));
 dom.maxVertices.addEventListener("input", () => { dom.maxVerticesValue.textContent = `${dom.maxVertices.value} vertices`; });
 configControls.forEach((control) => control.addEventListener("change", invalidateResult));
@@ -380,7 +487,8 @@ dom.name.addEventListener("input", invalidateResult);
 dom.maxVertices.addEventListener("input", invalidateResult);
 dom.save.addEventListener("click", () => saveWitness());
 dom.suggest.addEventListener("click", renderRepairs);
-dom.closeRepairs.addEventListener("click", () => { dom.repairPanel.hidden = true; });
+dom.closeRepairs.addEventListener("click", () => closeRepairPanel());
+dom.repairPanel.addEventListener("keydown", handleRepairKeydown);
 dom.copyExperiment.addEventListener("click", async () => {
   try {
     await navigator.clipboard.writeText(experimentUrl());
@@ -411,11 +519,18 @@ dom.copyPrompt.addEventListener("click", async () => {
 });
 dom.theme.addEventListener("click", () => {
   const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
-  document.documentElement.dataset.theme = next; localStorage.setItem("finite-witness-theme", next);
+  document.documentElement.dataset.theme = next;
+  dom.theme.setAttribute("aria-pressed", String(next === "dark"));
+  dom.theme.setAttribute("aria-label", next === "dark" ? "Restore light sheet colors" : "Invert sheet colors");
+  dom.theme.querySelector(".nav-label").textContent = next === "dark" ? "Restore sheet" : "Invert sheet";
+  localStorage.setItem("finite-witness-theme", next);
 });
 
 const savedTheme = localStorage.getItem("finite-witness-theme");
 if (savedTheme) document.documentElement.dataset.theme = savedTheme;
+dom.theme.setAttribute("aria-pressed", String(savedTheme === "dark"));
+dom.theme.setAttribute("aria-label", savedTheme === "dark" ? "Restore light sheet colors" : "Invert sheet colors");
+dom.theme.querySelector(".nav-label").textContent = savedTheme === "dark" ? "Restore sheet" : "Invert sheet";
 const sharedExperiment = new URLSearchParams(window.location.search).get("experiment");
 if (sharedExperiment) {
   try {
