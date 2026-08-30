@@ -88,6 +88,7 @@ main { width: min(1520px, 100%); margin: 0 auto; padding: 0 3.5vw 110px; }
 .proof-line { grid-column: 1; justify-self: center; width: 1px; height: 18px; background: var(--line); }
 
 .workspace { display: grid; grid-template-columns: minmax(340px, .72fr) minmax(580px, 1.45fr); min-height: 760px; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; background: var(--surface); box-shadow: 0 28px 70px var(--shadow); }
+#workspace, #evidence { scroll-margin-top: 86px; }
 .builder-panel { padding: 30px; border-right: 1px solid var(--line); background: var(--surface); }
 .panel-heading, .result-toolbar, .repair-heading, .evidence-heading { display: flex; justify-content: space-between; gap: 22px; align-items: flex-start; }
 h2, h3, h4 { letter-spacing: -.035em; }
