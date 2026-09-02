@@ -3,23 +3,23 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Finite Witness finds and explains the smallest finite graph that breaks a conjecture, with WebMCP tools for human-agent collaboration." />
-    <meta name="theme-color" content="#f4f3ee" />
-    <title>Finite Witness | Counterexamples you can inspect</title>
+    <meta name="description" content="Finite Witness stress-tests finite graph conjectures and returns the first inspectable counterexample through one shared human-agent workspace." />
+    <meta name="theme-color" content="#ece9df" />
+    <title>Finite Witness | One graph is enough</title>
     <link rel="icon" href="assets/logo.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="styles.css" />
   </head>
-  <body>
-    <div class="grain" aria-hidden="true"></div>
+  <body data-experience="rest">
+    <a class="skip-link" href="#workspace">Skip to the conjecture instrument</a>
     <header class="site-header">
-      <a class="brand" href="#workspace" aria-label="Finite Witness home">
-        <img src="assets/logo.svg" alt="" width="38" height="38" />
+      <a class="brand" href="#top" aria-label="Finite Witness home">
+        <img src="assets/logo.svg" alt="" width="34" height="34" />
         <span>Finite Witness</span>
       </a>
       <nav aria-label="Primary navigation">
-        <a href="#workspace">Workbench</a>
-        <a href="#evidence">Evidence shelf</a>
-        <button id="theme-toggle" class="text-button" type="button">Switch theme</button>
+        <a href="#workspace" aria-label="Test a claim"><span class="nav-glyph" aria-hidden="true">∀</span><span class="nav-label">Test a claim</span></a>
+        <a href="#evidence" aria-label="Open case files"><span class="nav-glyph" aria-hidden="true">∃</span><span class="nav-label">Case files</span></a>
+        <button id="theme-toggle" class="text-button" type="button" aria-label="Invert sheet colors" aria-pressed="false"><span class="nav-glyph" aria-hidden="true">◐</span><span class="nav-label">Invert sheet</span></button>
       </nav>
       <div id="webmcp-status" class="protocol-status" data-active="false">
         <span class="status-dot" aria-hidden="true"></span>
@@ -27,228 +27,289 @@
       </div>
     </header>
 
-    <main>
+    <main id="top">
       <section class="intro" aria-labelledby="page-title">
-        <div class="intro-copy">
-          <p class="kicker">A finite graph laboratory for people and agents</p>
-          <h1 id="page-title">Find the smallest world where a claim breaks.</h1>
-          <p>Shape a conjecture visually. Let an agent check small graphs in a declared order. Inspect the first witness together.</p>
+        <div class="intro-mast">
+          <p class="eyebrow">Finite graph refutation instrument · human + agent</p>
+          <h1 id="page-title"><span>One graph</span> is enough.</h1>
+          <p class="intro-deck">A universal claim can survive a thousand examples and still fail once. Assemble the claim, search the declared finite order, and inspect the first graph that ends it.</p>
+          <a class="jump-link" href="#workspace">Put a claim under pressure <span aria-hidden="true">↓</span></a>
         </div>
-        <div class="intro-proof" aria-label="Current proof search summary">
-          <span class="proof-index">01</span>
-          <p>Claims become testable constraints.</p>
-          <span class="proof-line" aria-hidden="true"></span>
-          <span class="proof-index">02</span>
-          <p>Search returns a minimal witness.</p>
-          <span class="proof-line" aria-hidden="true"></span>
-          <span class="proof-index">03</span>
-          <p>Human and agent revise the claim.</p>
+
+        <div class="quantifier-stage" aria-label="A universal claim becomes one existential counterexample">
+          <div class="quantifier universal" aria-hidden="true">∀</div>
+          <div class="pressure-line" aria-hidden="true">
+            <span class="pressure-label">universal claim</span>
+            <i></i>
+            <span class="pressure-label">single witness</span>
+          </div>
+          <div class="quantifier existential" aria-hidden="true">∃</div>
+          <p class="quantifier-caption">The interface shifts weight from <strong>for every graph</strong> to <strong>there exists a graph</strong> when the search finds a witness.</p>
+          <details class="logic-note">
+            <summary>Why one witness is enough</summary>
+            <p>A universal statement is false as soon as one object satisfies every premise and violates the conclusion. Finite Witness preserves that object and the exact search prefix that found it.</p>
+          </details>
         </div>
       </section>
 
-      <section id="workspace" class="workspace" aria-label="Conjecture workbench">
-        <aside class="builder-panel">
-          <div class="panel-heading">
-            <div>
-              <span class="section-number">01</span>
-              <h2>Shape the claim</h2>
-            </div>
-            <select id="scenario-select" aria-label="Load a demonstration scenario">
-              <option value="triangle">Triangle claim</option>
-              <option value="even-cycle">Even degree shape</option>
-              <option value="perfect-matching">Perfect matching</option>
-              <option value="diameter">Short diameter</option>
-              <option value="custom" disabled>Custom conjecture</option>
-            </select>
+      <section id="workspace" class="proof-rig" aria-label="Conjecture pressure test">
+        <header class="rig-header">
+          <div class="rig-ident">
+            <span class="specimen-number">FW / TEST <b id="iteration-number">01</b></span>
+            <span id="rig-state" class="rig-state">Untested</span>
           </div>
-
-          <label class="field-label" for="claim-name">Conjecture name</label>
-          <input id="claim-name" class="text-input" type="text" maxlength="72" value="Minimum degree forces a triangle" />
-
-          <fieldset>
-            <legend>If a finite simple graph with at least 3 vertices is...</legend>
-            <label class="check-row">
-              <input id="assume-connected" type="checkbox" checked />
-              <span>Connected</span>
-            </label>
-            <label class="select-row">
-              <span>Minimum degree</span>
-              <select id="assume-min-degree">
-                <option value="none">Any</option>
-                <option value="1">At least 1</option>
-                <option value="2" selected>At least 2</option>
-                <option value="3">At least 3</option>
-              </select>
-            </label>
-            <label class="select-row">
-              <span>Bipartite status</span>
-              <select id="assume-bipartite">
-                <option value="any" selected>Any</option>
-                <option value="yes">Must be bipartite</option>
-                <option value="no">Must be non-bipartite</option>
-              </select>
-            </label>
-            <label class="check-row">
-              <input id="assume-triangle-free" type="checkbox" />
-              <span>Triangle-free</span>
-            </label>
-            <label class="check-row">
-              <input id="assume-all-even" type="checkbox" />
-              <span>All vertex degrees are even</span>
-            </label>
-            <label class="check-row">
-              <input id="assume-even-order" type="checkbox" />
-              <span>Has an even number of vertices</span>
-            </label>
-            <label class="select-row">
-              <span>Edge surplus</span>
-              <select id="assume-edge-surplus">
-                <option value="none" selected>Any</option>
-                <option value="0">m ≥ n</option>
-                <option value="1">m ≥ n + 1</option>
-              </select>
-            </label>
-            <label class="select-row">
-              <span>Diameter</span>
-              <select id="assume-max-diameter">
-                <option value="none" selected>Any</option>
-                <option value="2">At most 2</option>
-                <option value="3">At most 3</option>
-              </select>
-            </label>
-          </fieldset>
-
-          <label class="field-label" for="conclusion-select">Then it must...</label>
-          <select id="conclusion-select" class="full-select">
-            <option value="contains_triangle">Contain a triangle</option>
-            <option value="is_cycle">Be exactly one cycle</option>
-            <option value="is_bipartite">Be bipartite</option>
-            <option value="has_perfect_matching">Have a perfect matching</option>
-            <option value="has_even_edge_count">Have an even number of edges</option>
-            <option value="diameter_at_most_2">Have diameter at most 2</option>
-          </select>
-
-          <label class="range-row" for="max-vertices">
-            <span>Search up to <strong id="max-vertices-value">6 vertices</strong></span>
-            <input id="max-vertices" type="range" min="3" max="6" value="6" />
-          </label>
-
-          <button id="run-search" class="primary-button" type="button">
-            Search for a counterexample
-            <span aria-hidden="true">→</span>
-          </button>
-          <div class="builder-utility-actions" aria-label="Experiment utilities">
-            <button id="copy-experiment-link" class="text-button utility-button" type="button">Copy experiment link</button>
-            <button id="reset-workspace" class="text-button utility-button" type="button">Reset workspace</button>
+          <div class="live-claim-block">
+            <span class="live-label">Live universal claim</span>
+            <p id="live-claim" aria-live="polite">Every connected, minimum degree at least 2 graph with at least 3 vertices must contain a triangle.</p>
           </div>
-          <p class="builder-note">Checks labeled graphs with at least 3 vertices in order and stops at the first counterexample.</p>
-        </aside>
-
-        <section class="result-panel" aria-live="polite">
-          <div class="result-toolbar">
-            <div>
-              <span class="section-number">02</span>
-              <h2>Inspect the witness</h2>
-            </div>
-            <div class="search-meta">
-              <span id="search-state" data-state="ready">Ready</span>
-              <span id="graphs-tested">0 graphs tested</span>
-            </div>
+          <div class="rig-bound" aria-label="Current finite search bound">
+            <span>Declared range</span>
+            <strong id="rig-bound">3 ≤ |V| ≤ 6</strong>
+            <button id="quick-run-search" class="quick-run" type="button">Run current test</button>
           </div>
+        </header>
 
-          <div id="empty-state" class="empty-state">
-            <div class="orbit" aria-hidden="true">
-              <span></span><span></span><span></span><span></span>
-            </div>
-            <h3>A claim is waiting to be tested.</h3>
-            <p>Run the search yourself, or ask an agent to use the page’s WebMCP tools.</p>
-          </div>
+        <div class="rig-pressure" aria-hidden="true">
+          <span class="pressure-origin">∀</span>
+          <div class="stress-track"><i></i><b></b></div>
+          <span class="pressure-destination">∃</span>
+        </div>
 
-          <div id="searching-state" class="searching-state" hidden>
-            <div class="scan-field" aria-hidden="true"><span></span></div>
-            <h3>Enumerating finite worlds</h3>
-            <p id="searching-copy">Checking candidate graphs in increasing order...</p>
-          </div>
-
-          <div id="witness-state" class="witness-state" hidden>
-            <div class="witness-visual">
-              <svg id="graph-canvas" viewBox="0 0 560 390" role="img" aria-labelledby="graph-title graph-desc">
-                <title id="graph-title">Counterexample graph</title>
-                <desc id="graph-desc">A visual representation of the smallest graph found by the exhaustive search.</desc>
-                <g id="graph-edges"></g>
-                <g id="graph-nodes"></g>
-              </svg>
-              <span class="minimal-tag">Smallest witness found</span>
-            </div>
-            <div class="witness-report">
-              <p class="result-verdict">The claim breaks.</p>
-              <h3 id="witness-title">A four-vertex cycle is enough.</h3>
-              <p id="witness-explanation"></p>
-              <dl id="metric-grid" class="metric-grid"></dl>
-              <div class="result-actions">
-                <button id="save-witness" class="primary-button compact" type="button">Save witness</button>
-                <button id="suggest-repairs" class="secondary-button" type="button">Suggest repairs</button>
-                <button id="copy-certificate" class="secondary-button" type="button">Copy certificate</button>
-              </div>
-              <div class="certificate-summary" aria-label="Current reproducibility certificate">
-                <span>Reproducibility certificate</span>
-                <code id="certificate-id">Generated after search</code>
-              </div>
-            </div>
-          </div>
-
-          <div id="no-witness-state" class="no-witness-state" hidden>
-            <span class="result-verdict">No counterexample found</span>
-            <h3 id="no-witness-title">The claim survived the finite search.</h3>
-            <p>This is evidence within the search bound, not a proof. Increase the bound or refine the statement before drawing a conclusion.</p>
-          </div>
-
-          <div id="repair-panel" class="repair-panel" hidden>
-            <div class="repair-heading">
+        <div class="rig-body">
+          <aside class="builder-panel" aria-labelledby="builder-title">
+            <div class="panel-heading">
               <div>
-                <span class="section-number">03</span>
-                <h3>Candidate repairs</h3>
+                <span class="section-number">∀ / 01</span>
+                <h2 id="builder-title">Assemble the universal</h2>
               </div>
-              <button id="close-repairs" class="text-button" type="button">Close</button>
+              <label class="scenario-picker">
+                <span>Load specimen</span>
+                <select id="scenario-select" aria-label="Load a demonstration scenario">
+                  <option value="triangle">Triangle claim</option>
+                  <option value="even-cycle">Even degree shape</option>
+                  <option value="perfect-matching">Perfect matching</option>
+                  <option value="diameter">Short diameter</option>
+                  <option value="custom" disabled>Custom conjecture</option>
+                </select>
+              </label>
             </div>
-            <p>These extra assumptions exclude the current witness. They are starting points, not proofs.</p>
-            <div id="repair-list" class="repair-list"></div>
-          </div>
-        </section>
+
+            <label class="field-label" for="claim-name">Conjecture name</label>
+            <input id="claim-name" class="text-input" type="text" maxlength="72" value="Minimum degree forces a triangle" />
+
+            <fieldset class="assumption-fieldset">
+              <legend>For every finite simple graph with at least 3 vertices that is...</legend>
+              <label class="check-row">
+                <input id="assume-connected" type="checkbox" checked />
+                <span>Connected</span>
+              </label>
+              <label class="select-row">
+                <span>Minimum degree</span>
+                <select id="assume-min-degree">
+                  <option value="none">Any</option>
+                  <option value="1">At least 1</option>
+                  <option value="2" selected>At least 2</option>
+                  <option value="3">At least 3</option>
+                </select>
+              </label>
+              <label class="select-row">
+                <span>Bipartite status</span>
+                <select id="assume-bipartite">
+                  <option value="any" selected>Any</option>
+                  <option value="yes">Must be bipartite</option>
+                  <option value="no">Must be non-bipartite</option>
+                </select>
+              </label>
+              <details id="advanced-premises" class="advanced-premises">
+                <summary><span>Additional pressure</span><small>5 optional premises</small></summary>
+                <div class="advanced-premise-list">
+                  <label class="check-row">
+                    <input id="assume-triangle-free" type="checkbox" />
+                    <span>Triangle-free</span>
+                  </label>
+                  <label class="check-row">
+                    <input id="assume-all-even" type="checkbox" />
+                    <span>All vertex degrees are even</span>
+                  </label>
+                  <label class="check-row">
+                    <input id="assume-even-order" type="checkbox" />
+                    <span>Has an even number of vertices</span>
+                  </label>
+                  <label class="select-row">
+                    <span>Edge surplus</span>
+                    <select id="assume-edge-surplus">
+                      <option value="none" selected>Any</option>
+                      <option value="0">m ≥ n</option>
+                      <option value="1">m ≥ n + 1</option>
+                    </select>
+                  </label>
+                  <label class="select-row">
+                    <span>Diameter</span>
+                    <select id="assume-max-diameter">
+                      <option value="none" selected>Any</option>
+                      <option value="2">At most 2</option>
+                      <option value="3">At most 3</option>
+                    </select>
+                  </label>
+                </div>
+              </details>
+            </fieldset>
+
+            <label class="field-label conclusion-label" for="conclusion-select">...the conclusion must be</label>
+            <select id="conclusion-select" class="full-select">
+              <option value="contains_triangle">Contain a triangle</option>
+              <option value="is_cycle">Be exactly one cycle</option>
+              <option value="is_bipartite">Be bipartite</option>
+              <option value="has_perfect_matching">Have a perfect matching</option>
+              <option value="has_even_edge_count">Have an even number of edges</option>
+              <option value="diameter_at_most_2">Have diameter at most 2</option>
+            </select>
+
+            <label class="range-row" for="max-vertices">
+              <span>Stop after <strong id="max-vertices-value">6 vertices</strong></span>
+              <input id="max-vertices" type="range" min="3" max="6" value="6" />
+              <span class="range-scale" aria-hidden="true"><i>3</i><i>4</i><i>5</i><i>6</i></span>
+            </label>
+
+            <button id="run-search" class="primary-button" type="button">
+              <span>Stress-test this claim</span>
+              <span aria-hidden="true">∀ → ∃</span>
+            </button>
+            <div class="builder-utility-actions" aria-label="Experiment utilities">
+              <button id="copy-experiment-link" class="text-button utility-button" type="button">Copy experiment link</button>
+              <button id="reset-workspace" class="text-button utility-button" type="button">Reset sheet</button>
+            </div>
+            <p class="builder-note">Ordered labeled graphs, starting at 3 vertices. The rig stops at the first counterexample.</p>
+          </aside>
+
+          <section class="result-panel" aria-labelledby="result-title">
+            <div class="result-toolbar">
+              <div>
+                <span class="section-number">∃ / 02</span>
+                <h2 id="result-title">Inspect the consequence</h2>
+              </div>
+              <div class="search-meta" role="status" aria-live="polite" aria-atomic="true">
+                <span id="search-state" data-state="ready">Ready</span>
+                <span id="graphs-tested">0 graphs tested</span>
+              </div>
+            </div>
+
+            <div id="empty-state" class="empty-state">
+              <div class="rest-diagram" aria-hidden="true">
+                <span class="rest-forall">∀</span>
+                <span class="rest-line"><i></i></span>
+                <span class="rest-exists">∃</span>
+              </div>
+              <div>
+                <p class="state-kicker">Instrument armed</p>
+                <h3>The claim is intact.</h3>
+                <p>Change a premise or run the ordered search. If the line breaks, the first witness will occupy this field.</p>
+              </div>
+            </div>
+
+            <div id="searching-state" class="searching-state" hidden>
+              <div class="enumeration-field" aria-hidden="true">
+                <span>000001</span><span>000010</span><span>000011</span><span>000100</span><span>000101</span><span>000110</span>
+                <i></i>
+              </div>
+              <div>
+                <p class="state-kicker">Pressure increasing</p>
+                <h3>Enumerating finite worlds</h3>
+                <p id="searching-copy">Checking candidate graphs in increasing vertex and edge-mask order...</p>
+              </div>
+            </div>
+
+            <div id="witness-state" class="witness-state" hidden>
+              <div class="witness-visual">
+                <span class="existence-stamp" aria-hidden="true">∃</span>
+                <svg id="graph-canvas" viewBox="0 0 560 390" role="img" aria-labelledby="graph-title graph-desc">
+                  <title id="graph-title">Counterexample graph</title>
+                  <desc id="graph-desc">A visual representation of the first graph found by the declared exhaustive search order.</desc>
+                  <g id="graph-edges"></g>
+                  <g id="graph-nodes"></g>
+                </svg>
+                <span class="minimal-tag">First witness in declared order</span>
+              </div>
+              <div class="witness-report">
+                <p class="result-verdict">Universal claim falsified</p>
+                <h3 id="witness-title">Four vertices are enough.</h3>
+                <p id="witness-explanation"></p>
+                <dl id="metric-grid" class="metric-grid"></dl>
+                <div class="result-actions">
+                  <button id="save-witness" class="primary-button compact" type="button">File witness</button>
+                  <button id="suggest-repairs" class="secondary-button" type="button">Repair the claim</button>
+                  <button id="copy-certificate" class="secondary-button" type="button">Copy certificate</button>
+                </div>
+                <div class="certificate-summary" aria-label="Current reproducibility certificate">
+                  <span>Counterexample certificate</span>
+                  <code id="certificate-id">Generated after search</code>
+                </div>
+              </div>
+            </div>
+
+            <div id="no-witness-state" class="no-witness-state" hidden>
+              <div class="bounded-mark" aria-hidden="true">∀<sup>≤n</sup></div>
+              <div>
+                <span class="result-verdict">Bounded search survived</span>
+                <h3 id="no-witness-title">No witness through 6 vertices.</h3>
+                <p>The line held inside this finite range. That is evidence, not a mathematical proof.</p>
+              </div>
+            </div>
+
+            <div id="repair-panel" class="repair-panel" role="dialog" aria-modal="true" aria-labelledby="repair-title" tabindex="-1" hidden>
+              <div class="repair-heading">
+                <div>
+                  <span class="section-number">∃ ↺ ∀ / 03</span>
+                  <h3 id="repair-title">Feed the witness back</h3>
+                </div>
+                <button id="close-repairs" class="text-button" type="button">Close</button>
+              </div>
+              <p>Each repair excludes this witness and rewrites the next universal claim. It remains a hypothesis until the rig runs again.</p>
+              <div id="repair-list" class="repair-list"></div>
+            </div>
+          </section>
+        </div>
       </section>
 
-      <section class="agent-strip" aria-labelledby="agent-title">
-        <div>
-          <span class="section-number">WebMCP</span>
-          <h2 id="agent-title">One live workspace. Two ways to reason.</h2>
+      <section class="agent-relay" aria-labelledby="agent-title">
+        <header>
+          <span class="section-number">Shared state / WebMCP</span>
+          <h2 id="agent-title">The reasoning passes through one sheet.</h2>
+        </header>
+        <div class="relay-line" aria-label="Human and agent workflow">
+          <div><b>01</b><strong>Human frames ∀</strong><span>Premises and conclusion stay visible.</span></div>
+          <i aria-hidden="true"></i>
+          <div><b>02</b><strong>Agent enumerates</strong><span>Eight WebMCP tools operate this same state.</span></div>
+          <i aria-hidden="true"></i>
+          <div><b>03</b><strong>Both inspect ∃</strong><span>The graph, metrics, search prefix, and certificate agree.</span></div>
         </div>
-        <p>An agent can configure a claim, run the same exhaustive engine, save evidence, and return verifiable results while you keep the graph in view.</p>
-        <button id="copy-prompt" class="secondary-button light" type="button">Copy agent prompt</button>
+        <button id="copy-prompt" class="secondary-button relay-action" type="button">Copy the full agent task</button>
       </section>
 
       <section id="evidence" class="evidence-section" aria-labelledby="evidence-title">
         <div class="evidence-heading">
           <div>
-            <span class="section-number">04</span>
-            <h2 id="evidence-title">Evidence shelf</h2>
+            <span class="section-number">Case file / 04</span>
+            <h2 id="evidence-title">Witness archive</h2>
           </div>
           <div class="evidence-heading-copy">
-            <p>Saved in this browser. Every entry records the exact claim, bound, witness, and search count.</p>
-            <button id="export-evidence" class="text-button utility-button" type="button">Export evidence JSON</button>
+            <p>Each filed witness preserves the universal claim it broke, the concrete graph, and the exact finite search record.</p>
+            <button id="export-evidence" class="text-button utility-button" type="button">Export archive as JSON</button>
           </div>
         </div>
         <div id="saved-list" class="saved-list">
           <div class="saved-empty">
-            <p>No witnesses saved yet.</p>
-            <span>Find one above, then pin it here for comparison.</span>
+            <span class="empty-file" aria-hidden="true">∄</span>
+            <div><p>No witness filed yet.</p><span>Find one above, then preserve its certificate here.</span></div>
           </div>
         </div>
       </section>
 
       <section class="activity-section" aria-labelledby="activity-title">
         <div>
-          <span class="section-number">Live protocol</span>
-          <h2 id="activity-title">Agent activity</h2>
+          <span class="section-number">Margin log</span>
+          <h2 id="activity-title">State changes</h2>
+          <p>Human actions and WebMCP calls write to the same audit margin.</p>
         </div>
         <ol id="activity-log" class="activity-log">
           <li><time>Now</time><span>Workspace initialized. Waiting for a human or WebMCP call.</span></li>
@@ -257,8 +318,8 @@
     </main>
 
     <footer>
-      <p>Finite Witness is an educational finite search tool. Surviving a bounded search is not a mathematical proof.</p>
-      <a href="https://github.com/f0909172434/finite-witness-webmcp">Source code</a>
+      <p><strong>Finite Witness</strong> is an educational finite search tool. A bounded search can refute; it cannot prove a universal claim.</p>
+      <a href="https://github.com/f0909172434/finite-witness-webmcp">Read the source</a>
     </footer>
 
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
