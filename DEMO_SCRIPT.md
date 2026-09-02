@@ -1,27 +1,27 @@
-# Finite Witness demo script (target: 2:30)
+# Finite Witness expressive demo narration (119 seconds)
 
-This script matches the published v1.0 demo. The live v1.1 product adds `apply_conjecture_repair` and `get_counterexample_certificate`, bringing the current total to eight WebMCP tools.
+Voice direction: warm, close-mic, curious, and restrained. Let the discovery of the four-vertex witness carry a small lift of surprise. Avoid an announcer cadence.
 
-## 0:00-0:20 | The problem
+## 0:00–0:16 | The problem
 
-“A mathematical claim can be wrong for one small, concrete reason. Finding that reason is tedious, and automated search usually happens somewhere the learner cannot see. Finite Witness gives a person and an AI agent one shared conjecture workspace.”
+“A mathematical claim can look right—until one small graph breaks it. Finding that graph is tedious, and automated search often happens somewhere the learner cannot see. Finite Witness gives a person and an AI agent one shared conjecture workspace.”
 
-## 0:20-0:50 | Human interface
+## 0:16–0:40 | Human interface
 
-“Here I am testing the claim that every connected graph with minimum degree at least two contains a triangle. The assumptions are explicit, the conclusion is selectable, and the search bound is visible. I can run the exhaustive search directly.”
+“Here, I’m testing a familiar claim: every connected graph with minimum degree at least two contains a triangle. The assumptions are explicit. The conclusion is selectable. And the search bound stays visible. When I’m ready, I can run the exhaustive search myself.”
 
-## 0:50-1:15 | Minimal witness
+## 0:40–1:00 | Minimal witness
 
-“The first counterexample has four vertices. It is a cycle: connected, minimum degree two, and triangle-free. The app reports the graph, degree sequence, diameter, bipartite status, and the exact number of candidate graphs tested. This is a witness I can inspect, not a black-box answer.”
+“Then—there it is. The first counterexample has just four vertices. It’s a cycle: connected, minimum degree two, and completely triangle-free. The app reports the graph, its degree sequence, diameter, bipartite status, and exactly how many candidates it tested. I can inspect the witness, not just trust a black-box answer.”
 
-## 1:15-1:55 | WebMCP workflow
+## 1:00–1:32 | WebMCP workflow
 
-“The page also registers six WebMCP tools. I can ask an agent to read the workspace, load a scenario, change the graph assumptions, run the same exhaustive engine, save the current witness, and suggest repairs. These are domain operations, not button clicks. They call the same application functions and update the graph I am looking at.”
+“The page also registers eight WebMCP tools. An agent can read the workspace, load a scenario, change assumptions, run the same exhaustive engine, save the witness, suggest a repair, apply and retest it, and retrieve a deterministic certificate. These are mathematical operations—not simulated button clicks. Every call uses the same application functions and updates the exact graph on screen.”
 
-## 1:55-2:18 | Human and agent together
+## 1:32–1:50 | Human and agent together
 
-“After saving the witness, the agent proposes assumptions that exclude it, such as raising the minimum degree. The interface labels these as starting points rather than proofs. I decide which mathematical direction is meaningful, and the agent runs the next controlled test.”
+“Once the witness is saved, the agent proposes assumptions that actually exclude it—for example, raising the minimum degree. The interface treats each repair as a new conjecture, never a proof. I decide which mathematical direction matters; the agent runs the next controlled test and records what happened.”
 
-## 2:18-2:30 | Close
+## 1:50–1:59 | Close
 
-“Finite Witness shows the future WebMCP makes possible: agents perform structured work inside the live web experience, while people keep context, judgment, and visual control.”
+“That’s the future WebMCP makes possible: agents do structured work inside the live web experience, while people keep the context, the judgment, and the final say.”
