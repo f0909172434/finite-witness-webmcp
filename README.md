@@ -115,3 +115,7 @@ OpenAI Codex was used during the hackathon period to help plan the product, impl
 ## License
 
 [MIT](LICENSE) © 2026 f0909172434
+
+## Deployment checks
+
+Pull requests and pushes run the graph-engine and evidence tests. The Pages workflow deploys only after those tests pass on `main`, and packages only `index.html`, `styles.css`, `src/`, and `assets/`.
