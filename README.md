@@ -70,6 +70,8 @@ The first admissible graph that violates the selected conclusion is returned as 
 
 ## Reproducibility and evidence
 
+Use the [independent Python certificate checker](docs/CERTIFICATE_CHECKING.md) to recompute a witness from its edge list. Add `--replay-search` to also verify that no earlier counterexample exists. The default witness check explicitly leaves minimality unchecked.
+
 Every found witness receives a deterministic certificate ID. Its certificate contains the normalized conjecture, exact labeled edge mask and edge list, graph metrics, bounded enumeration order, candidate count, and admissible-graph count. The certificate can be copied from the visual workbench or read through WebMCP.
 
 “Copy experiment link” serializes the normalized conjecture into the URL. Opening that link restores the same visible controls without a server or account. Saved witnesses include their certificate and can be exported together as a versioned JSON evidence bundle.
