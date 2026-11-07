@@ -1,33 +1,31 @@
 # Finite Witness
 
-**One graph is enough.**
+**One graph is enough to break a universal claim.**
 
-Finite Witness is a local-first finite graph conjecture laboratory built for the [OpenAI WebMCP Challenge](https://webmcp.devpost.com/). Its interface is a `∀ → ∃` pressure rig: a person assembles a universal claim, ordered graph search applies pressure, and the first counterexample shifts the page toward a concrete existential witness. An AI agent can configure the same claim, run the same engine, preserve the witness, apply a repair, and retrieve a deterministic certificate through eight WebMCP tools.
+Finite Witness is a browser app for testing conjectures about finite graphs, built for the [OpenAI WebMCP Challenge](https://webmcp.devpost.com/). You assemble a universal claim about simple graphs, an ordered search looks for a counterexample, and the first graph that breaks the claim replaces the universal statement on the page. The interface draws this as a move from `∀` to `∃`. An AI agent can do the same work through eight WebMCP tools: configure the claim, run the same search engine, save the witness, apply a repair and retrieve a deterministic certificate.
 
-The agent handles structured search and bookkeeping. The person sees the actual graph, checks the metrics, and decides how the mathematical claim should change. Both work through one live, inspectable sheet.
+The agent handles structured search and bookkeeping. The person looks at the actual graph, checks its metrics and decides how the mathematical claim should change. Both work on the same live page, so the person sees every change the agent makes.
 
 ## Live app
 
 [Open Finite Witness](https://f0909172434.github.io/finite-witness-webmcp/)
 
-No account, API key, build step, or backend is required. Saved witnesses stay in the current browser's local storage.
+The app needs no account, API key, build step or backend. Saved witnesses stay in the local storage of the browser you used.
 
 ## Interface concept
 
 ![Finite Witness interface: one graph is enough](assets/screenshots/01-hero.png)
 
-The visual system follows the mathematical argument. The universal quantifier begins with most of the weight. The ordered search line tightens as premises are added. When a counterexample appears, a single red `∃` takes over the consequence field. Candidate repairs then feed that witness back into the next universal statement. The paper, ruled lines, serif mathematics, black ink, and one witness-red accent keep every screen part of the same proof instrument.
+The layout follows the mathematical argument. At the start, the universal quantifier takes up most of the page. The ordered search line tightens as you add premises. When a counterexample appears, a single red `∃` takes over the consequence field. Candidate repairs then feed that witness back into the next universal statement. Every screen uses the same paper background, ruled lines, serif mathematics, black ink and a single red accent for the witness.
 
 ## Human and agent workflow
 
-1. Assemble a finite simple graph conjecture and read the live universal statement.
-2. Search labeled graphs with at least three vertices in increasing order, stopping at the first counterexample and using six vertices as the upper bound.
+1. Assemble a finite simple graph conjecture and read the universal statement as it updates.
+2. Search labeled graphs with at least three vertices in increasing order. The search stops at the first counterexample, and six vertices is the upper bound.
 3. Inspect the first counterexample and its exact graph metrics.
-4. Save the witness with the claim and search count.
-5. Feed the witness into a candidate repair and immediately test the revised statement again.
-6. Copy a deterministic counterexample certificate or share the entire experiment by URL.
-
-Finite Witness is an educational finite search tool. A claim surviving a bounded search is evidence, not a proof.
+4. Save the witness together with the claim and the search count.
+5. Feed the witness into a candidate repair and test the revised statement right away.
+6. Copy a deterministic counterexample certificate, or share the whole experiment as a URL.
 
 ## WebMCP implementation
 
@@ -44,7 +42,7 @@ The top-level page registers eight JavaScript WebMCP tools through `document.mod
 | `apply_conjecture_repair` | Apply a repair in the visible workspace and optionally run the next exhaustive search. |
 | `get_counterexample_certificate` | Return the claim, edge mask, edge list, metrics, enumeration order, and exact search counts. |
 
-The registrations live in [`src/webmcp.js`](src/webmcp.js). Tool handlers call the same application functions used by the human interface; there is no parallel agent-only implementation. Each result includes enough state to verify what changed in the visible page.
+The registrations live in [`src/webmcp.js`](src/webmcp.js). Each tool handler calls the same application function as the matching control in the human interface, so there is no separate implementation for agents. Every result carries enough state for the agent to verify what changed on the visible page.
 
 ```js
 await document.modelContext.registerTool({
@@ -60,27 +58,33 @@ await document.modelContext.registerTool({
 });
 ```
 
-The app checks for browser support before registration and remains fully usable in ordinary browsers. Tools are registered only in the top-level page, matching the current ChatGPT in-app browser support described in the official [Site tools guide](https://learn.chatgpt.com/docs/webmcp).
+The app checks for browser support before it registers anything, and it works normally in browsers without WebMCP. Tools are registered only in the top-level page, which matches the current ChatGPT in-app browser support described in the official [Site tools guide](https://learn.chatgpt.com/docs/webmcp).
 
 ## Search engine
 
-Graphs are represented by an integer edge mask. The engine checks the `2^(n choose 2)` labeled simple graphs for each vertex count in edge-mask order. It computes connectivity, degree sequence, triangle count, bipartiteness, diameter, cycle structure, and perfect matching existence. A dedicated Web Worker keeps the visible interface responsive during enumeration.
+Each graph is stored as an integer edge mask. For each vertex count, the engine checks the `2^(n choose 2)` labeled simple graphs in edge-mask order. It computes connectivity, the degree sequence, the triangle count, bipartiteness, the diameter, cycle structure and whether a perfect matching exists. The enumeration runs in a dedicated Web Worker so the page stays responsive.
 
-The first admissible graph that violates the selected conclusion is returned as the minimal witness by vertex count. The app checks every earlier graph in the declared order, then stops at that witness. It reports the requested upper bound, exact stopping mask, total candidate prefix tested, and number of admissible graphs in that prefix; it does not imply that larger graphs were enumerated after a witness was found.
+The first admissible graph that violates the selected conclusion is returned as the witness with the fewest vertices. The app checks every earlier graph in the declared order and then stops at that witness. It reports the requested upper bound, the exact mask where it stopped, how many candidates it tested before stopping and how many of those were admissible. It does not claim that larger graphs were enumerated after the witness was found.
 
 ## Reproducibility and evidence
 
-Use the [independent Python certificate checker](docs/CERTIFICATE_CHECKING.md) to recompute a witness from its edge list. Add `--replay-search` to also verify that no earlier counterexample exists. The default witness check explicitly leaves minimality unchecked.
+The [independent Python certificate checker](docs/CERTIFICATE_CHECKING.md) recomputes a witness from its edge list. Adding `--replay-search` also verifies that no earlier counterexample exists. Without that flag, the checker states explicitly that minimality was not checked.
 
-Every found witness receives a deterministic certificate ID. Its certificate contains the normalized conjecture, exact labeled edge mask and edge list, graph metrics, bounded enumeration order, candidate count, and admissible-graph count. The certificate can be copied from the visual workbench or read through WebMCP.
+Every witness the app finds gets a deterministic certificate ID. The certificate contains the normalized conjecture, the exact labeled edge mask and edge list, the graph metrics, the bounded enumeration order, the candidate count and the admissible-graph count. You can copy it from the visual workbench or read it through WebMCP.
 
-“Copy experiment link” serializes the normalized conjecture into the URL. Opening that link restores the same visible controls without a server or account. Saved witnesses include their certificate and can be exported together as a versioned JSON evidence bundle.
+“Copy experiment link” writes the normalized conjecture into the URL. Opening that link restores the same controls without a server or an account. Each saved witness includes its certificate, and you can export all saved witnesses together as a versioned JSON evidence bundle.
 
-Changing any visible assumption clears the old result immediately. This prevents a witness for an earlier conjecture from being displayed or saved as evidence for a revised one.
+Changing any visible assumption clears the old result immediately. A witness for an earlier conjecture therefore cannot be shown or saved as evidence for a revised one.
+
+## What it does not do
+
+- Finite Witness is an educational tool for finite search. When a claim survives a bounded search, that is evidence for the claim, not a proof.
+- The search covers graphs with three to six vertices only. It says nothing about larger graphs.
+- The short certificate ID is a display label. It is not a signature and does not prove who produced the certificate.
 
 ## Run locally
 
-Requirements: Python 3 and a modern browser.
+You need Python 3 and a modern browser.
 
 ```bash
 git clone https://github.com/f0909172434/finite-witness-webmcp.git
@@ -90,29 +94,29 @@ python3 -m http.server 4173
 
 Then open `http://127.0.0.1:4173`.
 
-To inspect WebMCP tools, use ChatGPT's in-app browser or enable WebMCP testing in a supported version of Google Chrome.
+To inspect the WebMCP tools, use ChatGPT's in-app browser or enable WebMCP testing in a supported version of Google Chrome.
 
 ## Tests
 
-Requirements: Node.js 20 or newer.
+The tests need Node.js 20 or newer.
 
 ```bash
 npm test
 ```
 
-The tests cover graph analysis, minimal counterexample results, repair application, shareable experiment round-trips, configuration normalization, and deterministic certificates.
+They cover graph analysis, minimal counterexample results, applying repairs, round-trips of shareable experiments, configuration normalization and deterministic certificates.
 
 ## Privacy and safety
 
-- No analytics, tracking, cookies, network APIs, or user accounts.
+- The app has no analytics, tracking, cookies, network APIs or user accounts.
 - No user data leaves the browser.
-- Saved evidence uses browser-local storage and can be cleared with site data.
+- Saved evidence lives in browser local storage, and clearing the site data removes it.
 - WebMCP inputs are narrow and validated by JSON Schema.
-- Tool outputs distinguish finite evidence from proof.
+- Tool outputs keep finite evidence separate from proof.
 
 ## AI assistance disclosure
 
-OpenAI Codex was used during the hackathon period to help plan the product, implement and review the HTML, CSS, JavaScript, tests, WebMCP registrations, documentation, and submission materials. The entrant directed the project and is responsible for the submitted work. No hosted model or AI API is used by the running application.
+OpenAI Codex was used during the hackathon period to help plan the product and to implement and review the HTML, CSS, JavaScript, tests, WebMCP registrations, documentation and submission materials. The entrant directed the project and is responsible for the submitted work. The running application uses no hosted model or AI API.
 
 ## License
 
@@ -120,4 +124,4 @@ OpenAI Codex was used during the hackathon period to help plan the product, impl
 
 ## Deployment checks
 
-Pull requests and pushes run the graph-engine and evidence tests. The Pages workflow deploys only after those tests pass on `main`, and packages only `index.html`, `styles.css`, `src/`, and `assets/`.
+Pull requests and pushes run the graph-engine and evidence tests. The Pages workflow deploys only after those tests pass on `main`, and it publishes only `index.html`, `styles.css`, `src/` and `assets/`.
