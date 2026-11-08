@@ -8,7 +8,7 @@ The agent handles structured search and bookkeeping. The person looks at the act
 
 ## Live app
 
-[Open Finite Witness](https://f0909172434.github.io/finite-witness-webmcp/)
+[Open Finite Witness](https://chih-kai-wang.github.io/finite-witness-webmcp/)
 
 The app needs no account, API key, build step or backend. Saved witnesses stay in the local storage of the browser you used.
 
@@ -87,7 +87,7 @@ Changing any visible assumption clears the old result immediately. A witness for
 You need Python 3 and a modern browser.
 
 ```bash
-git clone https://github.com/f0909172434/finite-witness-webmcp.git
+git clone https://github.com/Chih-Kai-Wang/finite-witness-webmcp.git
 cd finite-witness-webmcp
 python3 -m http.server 4173
 ```

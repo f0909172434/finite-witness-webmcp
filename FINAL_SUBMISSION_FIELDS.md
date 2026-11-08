@@ -18,9 +18,9 @@ Finite Witness is a finite graph conjecture laboratory built for the OpenAI WebM
 
 The 119-second demo records the core workflow: a person shapes a graph conjecture, the engine finds its first counterexample in the declared order, and an agent saves the witness and suggests the next assumptions to test. The current v1.2 app presents that workflow as a `∀ → ∃` conjecture pressure rig and adds direct repair-and-retest plus deterministic counterexample certificates.
 
-Live app: https://f0909172434.github.io/finite-witness-webmcp/
+Live app: https://chih-kai-wang.github.io/finite-witness-webmcp/
 
-Source code: https://github.com/f0909172434/finite-witness-webmcp
+Source code: https://github.com/Chih-Kai-Wang/finite-witness-webmcp
 
 The top-level page registers eight WebMCP tools for reading the workspace, loading scenarios, configuring conjectures, running counterexample search, saving evidence, suggesting and applying repairs, and retrieving deterministic counterexample certificates. The app uses the same logic for human controls and agent calls.
 
@@ -28,11 +28,11 @@ Built by Chih-Kai Wang during the challenge period. OpenAI Codex assisted with i
 
 ## Live application
 
-https://f0909172434.github.io/finite-witness-webmcp/
+https://chih-kai-wang.github.io/finite-witness-webmcp/
 
 ## Public repository
 
-https://github.com/f0909172434/finite-witness-webmcp
+https://github.com/Chih-Kai-Wang/finite-witness-webmcp
 
 ## Built with
 
